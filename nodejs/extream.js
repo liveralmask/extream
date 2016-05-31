@@ -40,15 +40,31 @@ extream.extream_socket = function( config ){
     "connection" : function( src_socket ){
       extream.client_socket( config.client.type, config.client.host, config.client.port, {
         "open" : function(){
-          opjs.log.dbg( "open" );
+          var dst_socket = this;
           
-          // TODO StreamManager.add()
-          
+          src_socket.on( "data", function( data ){
+            dst_socket.write( data );
+          });
+          src_socket.on( "close", function(){
+            dst_socket.close();
+          });
+          src_socket.on( "error", function( event ){
+            opjs.log.err( opjs.string.format( "{0}\n{1}", opjs.json.encode( event ), opjs.stack.get( 1 ) ) );
+          });
+        },
+        "data" : function( data ){
+          src_socket.write( data );
+        },
+        "close" : function(){
+          src_socket.close();
         },
         "error" : function( event ){
           opjs.log.err( opjs.string.format( "{0}\n{1}", opjs.json.encode( event ), opjs.stack.get( 1 ) ) );
         },
       });
+    },
+    "close" : function(){
+      opjs.log.dbg( "close" );
     },
     "error" : function( event ){
       opjs.log.err( opjs.string.format( "{0}\n{1}", opjs.json.encode( event ), opjs.stack.get( 1 ) ) );
@@ -64,21 +80,26 @@ extream.WebServer = function( host, port, callbacks ){
   });
   
   opjs.kvary.each( callbacks, function( type, callback ){
-    switch ( type ){
-    case "connection":{
-      self.m_socket.on( type, function( socket ){
-        callback.apply( self, [ new extream.WebClient( socket ) ] );
-      });
-    }break;
-    
-    default:{
-      self.m_socket.on( type, function(){
-        var args = Array.prototype.slice.call( arguments );
-        callback.apply( self, args );
-      });
-    }break;
-    }
+    self.on( type, callback );
   });
+};
+extream.WebServer.prototype.on = function( type, callback ){
+  var self = this;
+  switch ( type ){
+  case "connection":{
+    self.m_socket.on( type, function( socket ){
+      callback.apply( self, [ new extream.WebClient( socket ) ] );
+    });
+  }break;
+  
+  case "close":
+  case "error":{
+    self.m_socket.on( type, function(){
+      var args = Array.prototype.slice.call( arguments );
+      callback.apply( self, args );
+    });
+  }break;
+  }
 };
 
 extream.WebClient = function(){
@@ -92,71 +113,116 @@ extream.WebClient = function(){
   var callbacks = opjs.is_undef( args[ 1 ] ) ? {} : args[ 1 ];
   
   opjs.kvary.each( callbacks, function( type, callback ){
+    self.on( type, callback );
+  });
+};
+extream.WebClient.prototype.on = function( type, callback ){
+  var self = this;
+  switch ( type ){
+  case "open":{
+    self.m_socket.on( type, function( socket ){
+      callback.apply( self );
+    });
+  }break;
+  
+  case "data":{
+    self.m_socket.on( "message", function( data ){
+      callback.apply( self, [ data ] );
+    });
+  }break;
+  
+  case "close":
+  case "error":{
     self.m_socket.on( type, function(){
       var args = Array.prototype.slice.call( arguments );
       callback.apply( self, args );
     });
-  });
+  }break;
+  }
 };
 extream.WebClient.prototype.write = function( data ){
   this.m_socket.send( data );
 };
 extream.WebClient.prototype.close = function(){
-  this.m_socket.close();
+  if ( opjs.is_def( this.m_socket ) ){
+    this.m_socket.close();
+    delete this.m_socket;
+  }
 };
 
 extream.TcpServer = function( host, port, callbacks ){
   var self = this;
-  this.m_socket = net.createServer( function( socket ){
-    opjs.kvary.each( callbacks, function( type, callback ){
-      switch ( type ){
-      case "connection":{
-        callback.apply( self, [ new extream.TcpClient( socket ) ] );
-      }break;
-      
-      default:{
-        self.m_socket.on( type, function(){
-          var args = Array.prototype.slice.call( arguments );
-          callback.apply( self, args );
-        });
-      }break;
-      }
-    });
+  this.m_socket = net.createServer();
+  opjs.kvary.each( callbacks, function( type, callback ){
+    self.on( type, callback );
   });
   this.m_socket.listen( port, host, 10000 );
+};
+extream.TcpServer.prototype.on = function( type, callback ){
+  var self = this;
+  switch ( type ){
+  case "connection":{
+    self.m_socket.on( type, function( socket ){
+      callback.apply( self, [ new extream.TcpClient( socket ) ] );
+    });
+  }break;
+  
+  case "data":
+  case "close":
+  case "error":{
+    self.m_socket.on( type, function(){
+      var args = Array.prototype.slice.call( arguments );
+      callback.apply( self, args );
+    });
+  }break;
+  }
 };
 
 extream.TcpClient = function(){
   var self = this;
   var args = Array.prototype.slice.call( arguments );
+  var callbacks = args[ args.length - 1 ];
+  if ( opjs.is_undef( callbacks ) ) callbacks = {};
   if ( 3 == args.length ){
-    var callbacks = opjs.is_undef( args[ 2 ] ) ? {} : args[ 2 ];
     this.m_socket = new net.Socket();
-    this.m_socket.connect( args[ 1 ], args[ 0 ], function(){
-      opjs.kvary.each( callbacks, function( type, callback ){
-        switch ( type ){
-        case "open":{
-          callback.apply( self );
-        }break;
-        
-        default:{
-          self.m_socket.on( type, function(){
-            var args = Array.prototype.slice.call( arguments );
-            callback.apply( self, args );
-          });
-        }break;
-        }
-      });
+    opjs.kvary.each( callbacks, function( type, callback ){
+      self.on( type, callback );
     });
+    this.m_socket.connect( args[ 1 ], args[ 0 ] );
   }else{
     this.m_socket = args[ 0 ];
+    opjs.kvary.each( callbacks, function( type, callback ){
+      self.on( type, callback );
+    });
+  }
+};
+extream.TcpClient.prototype.on = function( type, callback ){
+  var self = this;
+  switch ( type ){
+  case "open":{
+    self.m_socket.on( "connect", function( socket ){
+      callback.apply( self );
+    });
+  }break;
+  
+  case "data":
+  case "close":
+  case "error":{
+    self.m_socket.on( type, function(){
+      var args = Array.prototype.slice.call( arguments );
+      callback.apply( self, args );
+    });
+  }break;
   }
 };
 extream.TcpClient.prototype.write = function( data ){
   this.m_socket.write( data );
 };
 extream.TcpClient.prototype.close = function(){
-  this.m_socket.destroy();
+  if ( opjs.is_def( this.m_socket ) ){
+    this.m_socket.destroy();
+    delete this.m_socket;
+  }
 };
 
 if ( require.main === module ){
