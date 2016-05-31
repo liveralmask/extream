@@ -3,6 +3,7 @@ var extream = this;
 var opjs = require( "./opjs" );
 var ws = require( "ws" );
 var net = require( "net" );
+var argv = require( "argv" );
 
 extream.server_socket = function( type, host, port, callbacks ){
   var socket = null;
@@ -35,10 +36,10 @@ extream.client_socket = function( type, host, port, callbacks ){
   return socket;
 };
 
-extream.extream_socket = function( config ){
-  extream.server_socket( config.server.type, config.server.host, config.server.port, {
+extream.extream_socket = function( server, client ){
+  extream.server_socket( server.type, server.host, server.port, {
     "connection" : function( src_socket ){
-      extream.client_socket( config.client.type, config.client.host, config.client.port, {
+      extream.client_socket( client.type, client.host, client.port, {
         "open" : function(){
           var dst_socket = this;
           
@@ -50,6 +51,8 @@ extream.extream_socket = function( config ){
           });
           src_socket.on( "error", function( event ){
             opjs.log.err( opjs.string.format( "{0}\n{1}", opjs.json.encode( event ), opjs.stack.get( 1 ) ) );
+            
+            this.close();
           });
         },
         "data" : function( data ){
@@ -60,11 +63,10 @@ extream.extream_socket = function( config ){
         },
         "error" : function( event ){
           opjs.log.err( opjs.string.format( "{0}\n{1}", opjs.json.encode( event ), opjs.stack.get( 1 ) ) );
+          
+          this.close();
         },
       });
-    },
-    "close" : function(){
-      opjs.log.dbg( "close" );
     },
     "error" : function( event ){
       opjs.log.err( opjs.string.format( "{0}\n{1}", opjs.json.encode( event ), opjs.stack.get( 1 ) ) );
@@ -226,18 +228,8 @@ extream.TcpClient.prototype.close = function(){
 };
 
 if ( require.main === module ){
-  var config = {
-    server : {
-      type : "ws",
-      host : "127.0.0.1",
-      port : 60000,
-    },
-    client : {
-      type : "tcp",
-      host : "127.0.0.1",
-      port : 10000,
-    }
-  };
-  
-  extream.extream_socket( config );
+  opjs.array.each( argv.run().targets, function( arg, i ){
+    var config = require( arg );
+    extream.extream_socket( config.server, config.client );
+  });
 }
