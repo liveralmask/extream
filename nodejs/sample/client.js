@@ -1,5 +1,12 @@
 var opjs = require( "../opjs" );
 var extream = require( "../extream" );
+var argv = require( "argv" );
+
+var count = 1;
+opjs.array.each( argv.run().targets, function( arg, i ){
+  count = opjs.to_i( arg );
+});
+opjs.log.dbg( opjs.string.format( "count={0}", count ) );
 
 var callbacks = {
   "data" : function( data ){
@@ -14,12 +21,16 @@ var callbacks = {
   },
 };
 
-callbacks.open = function(){
-  this.write( "WebClient" );
-};
-extream.client_socket( "ws",  "127.0.0.1", 60000, callbacks );
+opjs.times( count, function( i ){
+  callbacks.open = function(){
+    this.write( "WebClient "+ ( i + 1 ) );
+  };
+  extream.client_socket( "ws",  "127.0.0.1", 60000, callbacks );
+});
 
-callbacks.open = function(){
-  this.write( "TcpClient" );
-};
-extream.client_socket( "tcp", "127.0.0.1", 60001, callbacks );
+opjs.times( count, function( i ){
+  callbacks.open = function(){
+    this.write( "TcpClient "+ ( i + 1 ) );
+  };
+  extream.client_socket( "tcp", "127.0.0.1", 60001, callbacks );
+});

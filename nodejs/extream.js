@@ -9,7 +9,7 @@ extream.server_socket = function( type, host, port, callbacks ){
   var socket = null;
   switch ( type ){
   case "tcp":{
-    socket = new extream.TcpServer( host, port, callbacks );
+    socket = new extream.TCPServer( host, port, callbacks );
   }break;
   
   case "ws":
@@ -24,7 +24,7 @@ extream.client_socket = function( type, host, port, callbacks ){
   var socket = null;
   switch ( type ){
   case "tcp":{
-    socket = new extream.TcpClient( host, port, callbacks );
+    socket = new extream.TCPClient( host, port, callbacks );
   }break;
   
   case "ws":
@@ -152,7 +152,7 @@ extream.WebClient.prototype.close = function(){
   }
 };
 
-extream.TcpServer = function( host, port, callbacks ){
+extream.TCPServer = function( host, port, callbacks ){
   var self = this;
   this.m_socket = net.createServer();
   opjs.kvary.each( callbacks, function( type, callback ){
@@ -160,12 +160,12 @@ extream.TcpServer = function( host, port, callbacks ){
   });
   this.m_socket.listen( port, host, 10000 );
 };
-extream.TcpServer.prototype.on = function( type, callback ){
+extream.TCPServer.prototype.on = function( type, callback ){
   var self = this;
   switch ( type ){
   case "connection":{
     self.m_socket.on( type, function( socket ){
-      callback.apply( self, [ new extream.TcpClient( socket ) ] );
+      callback.apply( self, [ new extream.TCPClient( socket ) ] );
     });
   }break;
   
@@ -180,7 +180,7 @@ extream.TcpServer.prototype.on = function( type, callback ){
   }
 };
 
-extream.TcpClient = function(){
+extream.TCPClient = function(){
   var self = this;
   var args = Array.prototype.slice.call( arguments );
   var callbacks = args[ args.length - 1 ];
@@ -198,7 +198,7 @@ extream.TcpClient = function(){
     });
   }
 };
-extream.TcpClient.prototype.on = function( type, callback ){
+extream.TCPClient.prototype.on = function( type, callback ){
   var self = this;
   switch ( type ){
   case "open":{
@@ -217,10 +217,10 @@ extream.TcpClient.prototype.on = function( type, callback ){
   }break;
   }
 };
-extream.TcpClient.prototype.write = function( data ){
+extream.TCPClient.prototype.write = function( data ){
   this.m_socket.write( data );
 };
-extream.TcpClient.prototype.close = function(){
+extream.TCPClient.prototype.close = function(){
   if ( opjs.is_def( this.m_socket ) ){
     this.m_socket.destroy();
     delete this.m_socket;

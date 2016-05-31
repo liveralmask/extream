@@ -1,0 +1,15 @@
+desc "Start process"
+task :start do |t, args|
+  configs = Dir.glob( "./config/*" )
+  sh "forever start extream.js #{configs.join( ' ' )}"
+end
+
+desc "Show process status"
+task :status do |t, args|
+  sh "forever list"
+end
+
+desc "Stop process"
+task :stop do |t, args|
+  sh "forever stop extream.js"
+end

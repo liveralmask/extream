@@ -22,6 +22,16 @@ opjs.is_kvary = function( value ){
   return ( typeof value === "object" );
 };
 
+opjs.times = function( count, callback ){
+  for ( var i = 0; i < count; ++i ){
+    if ( false === callback( i ) ) break;
+  }
+};
+
+opjs.to_i = function( value, base ){
+  return parseInt( value, base );
+};
+
 (function( array ){
   array.each = function( data, callback ){
     var data_len = data.length;
@@ -437,7 +447,7 @@ opjs.Log = function(){
   };
 };
 opjs.Log.prototype.write = function( type, msg ){
-  console.log( opjs.string.format( "{0}{1}{2}", this.styles[ type ], msg, this.styles[ "clr" ] ) );
+  console.log( opjs.string.format( "{0}[{1}] {2}{3}", this.styles[ type ], opjs.time.format( "all" ), msg, this.styles[ "clr" ] ) );
 };
 
 (function( log ){
