@@ -230,6 +230,7 @@ extream.TCPClient.prototype.close = function(){
 if ( require.main === module ){
   opjs.array.each( argv.run().targets, function( arg, i ){
     var config = require( arg );
+    opjs.log.inf( opjs.json.encode( config ) );
     extream.extream_socket( config.server, config.client );
   });
 }

@@ -1,7 +1,14 @@
 var opjs = require( "../opjs" );
 var extream = require( "../extream" );
+var argv = require( "argv" );
 
-extream.server_socket( "tcp",  "127.0.0.1", 10000, {
+var argv = argv.run().targets;
+var type = argv[ 0 ];
+var host = argv[ 1 ];
+var port = opjs.to_i( argv[ 2 ] );
+opjs.log.inf( opjs.string.format( "type={0} host={1} port={2}", type, host, port ) );
+
+extream.server_socket( type, host, port, {
   "connection" : function( socket ){
     socket.on( "data", function( data ){
       this.write( data );

@@ -2,11 +2,11 @@
   "server" : {
     "type" : "ws",
     "host" : "127.0.0.1",
-    "port" : 60000
+    "port" : 55555
   },
   "client" : {
     "type" : "tcp",
     "host" : "127.0.0.1",
-    "port" : 10000
+    "port" : 11111
   }
 }

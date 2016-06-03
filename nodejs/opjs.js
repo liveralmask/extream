@@ -365,6 +365,24 @@ opjs.Pattern.prototype.match = function( value ){
   };
 })(opjs.time = opjs.time || {});
 
+(function( measure ){
+})(opjs.measure = opjs.measure || {});
+
+opjs.measure.Time = function(){
+  this.start();
+};
+opjs.measure.Time.prototype.start = function(){
+  this.m_start_time = this.m_end_time = new Date();
+  this.m_update_msec = 0;
+  this.m_count = 0;
+};
+opjs.measure.Time.prototype.update = function(){
+  this.m_end_time = new Date();
+  this.m_update_msec += ( this.m_end_time - this.m_start_time );
+  ++this.m_count;
+  return this.m_update_msec;
+};
+
 (function( method ){
   method.call = function(){
     var args = Array.prototype.slice.call( arguments );
